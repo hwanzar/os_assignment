@@ -10,26 +10,67 @@
 #include <stdio.h>
 
 /*------------------Bat dau phan lam----------------*/
-
+void LRU_update_lst(uint32_t *pte_rm)
+{
+  struct LRU_struct *p = lru_head;
+  int fpn = PAGING_PTE_FPN(*pte_rm);
+  while (p->lru_next != NULL)
+  {
+    if (p->fpn == fpn)
+    {
+      break;
+    }
+    p = p->lru_next;
+  }
+  if (p == lru_head)
+  {
+    if (lru_head == lru_tail)
+    {
+      return;
+    }
+    lru_head = lru_head->lru_next;
+    lru_head->lru_pre = NULL;
+    // free(p);
+  }
+  else if (p == lru_tail)
+  {
+    return;
+  }
+  else
+  {
+    p->lru_pre->lru_next = p->lru_next;
+    p->lru_next->lru_pre = p->lru_pre;
+    // free(p);
+  }
+  lru_tail->lru_next = p;
+  p->lru_pre = lru_tail;
+  p->lru_next = NULL;
+  lru_tail = p;
+  // p->pte = pte_rm;
+  // lru_tail->lru_next = tmp;
+  // tmp->lru_pre = lru_tail;
+  // tmp->lru_next = NULL;
+  // lru_tail = tmp;
+}
 void LRU_add_page(uint32_t *pte_add)
 {
   // nên tạo 1 cấu trúc dữ liệu cho LRU, như 1 DLL gần giống stack.
-  struct LRU_struct *temp = malloc(sizeof(struct LRU_struct));
-  temp->pte = pte_add; // gắn page table entry.
-  temp->fpn = PAGING_PTE_FPN(*pte_add);
-  if (lru_tail != NULL)
-  {
+  struct LRU_struct *tmp = malloc(sizeof(struct LRU_struct));
+  tmp->pte = pte_add; // gắn page table entry.
+  tmp->fpn = PAGING_PTE_FPN(*pte_add);
+  // if (lru_tail != NULL)
+  // {
 
-    printf("TAIL: %08x\n", *lru_tail->pte);
-  }
+  //   printf("TAIL: %08x\n", *lru_tail->pte);
+  // }
   // ADD PAGE VAO TAIL CUA LRUSTRUCT.
-  printf("=======================================================Frame: %d\n", temp->fpn);
+  // printf("=======================================================Frame: %d\n", tmp->fpn);
   if (lru_head == NULL)
   {
-    lru_head = temp;
+    lru_head = tmp;
     lru_tail = lru_head;
-    temp->lru_pre = NULL;
-    temp->lru_next = NULL;
+    tmp->lru_pre = NULL;
+    tmp->lru_next = NULL;
   }
   else
   {
@@ -38,7 +79,7 @@ void LRU_add_page(uint32_t *pte_add)
     while (p != NULL)
     {
       // duyệt qua để check trùng pte.
-      if (p->fpn == temp->fpn)
+      if (p->fpn == tmp->fpn)
       {
         flag = 1;
         printf("FLAG 1");
@@ -46,44 +87,6 @@ void LRU_add_page(uint32_t *pte_add)
       }
       p = p->lru_next;
     }
-
-    // if (flag == 1)
-    // {
-    //   // trùng pte, remove, add tmp vào list.
-    //   struct LRU_struct *delNode = p;
-    //   if (delNode == lru_head)
-    //   {
-    //     if (lru_head->lru_next == NULL)
-    //     {
-    //       return;
-    //     }
-    //     lru_head = lru_head->lru_next;
-    //     p->lru_next = NULL;
-    //   }
-    //   else if (delNode == lru_tail)
-    //   {
-    //     // lru_tail = lru_tail->lru_pre;
-    //     // p->lru_pre = NULL;
-    //     return;
-    //   }
-    //   else
-    //   {
-    //     p->lru_pre->lru_next = p->lru_next;
-    //     p->lru_next->lru_pre = p->lru_pre;
-    //     // p->lru_pre = NULL;
-    //     // p->lru_next = NULL;
-    //   }
-    //   // ADD VÀO ĐẦU LIST.
-    //   lru_tail->lru_next = NULL;
-    //   lru_tail->lru_next = temp;
-    //   temp->lru_pre = lru_tail;
-    //   temp->lru_next = NULL;
-    //   lru_tail = temp;
-
-    //   printf("ADD TEMP TO TAIL %08x", *temp->pte);
-    //   // free(delNode);
-    //   return;
-    // }
     if (flag == 1)
     {
       if (p == lru_head)
@@ -94,6 +97,7 @@ void LRU_add_page(uint32_t *pte_add)
         }
         lru_head = lru_head->lru_next;
         lru_head->lru_pre = NULL;
+        // free(p);
       }
       else if (p == lru_tail)
       {
@@ -103,19 +107,22 @@ void LRU_add_page(uint32_t *pte_add)
       {
         p->lru_pre->lru_next = p->lru_next;
         p->lru_next->lru_pre = p->lru_pre;
+        // free(p);
       }
 
-      lru_tail->lru_next = temp;
-      temp->lru_pre = lru_tail;
-      temp->lru_next = NULL;
-      lru_tail = temp;
+      lru_tail->lru_next = p;
+      p->lru_pre = lru_tail;
+      p->lru_next = NULL;
+      lru_tail = p;
+      // lru_tail->pte = pte_add;
     }
     else
     {
-      lru_tail->lru_next = temp;
-      temp->lru_pre = lru_tail;
-      temp->lru_next = NULL;
-      lru_tail = temp;
+      lru_tail->lru_next = tmp;
+      tmp->lru_pre = lru_tail;
+      tmp->lru_next = NULL;
+      lru_tail = tmp;
+      // lru_tail->pte = pte_add;
       return;
     }
   }
@@ -164,7 +171,8 @@ void LRU_print_page()
   {
     while (temp != NULL)
     {
-      printf("[%d][%08x]", PAGING_PTE_FPN(*(temp->pte)), *temp->pte);
+      // printf("[%d][%08x]", PAGING_PTE_FPN(*(temp->pte)), *temp->pte);
+      printf("[%d]", temp->fpn);
       if (temp->lru_next != NULL)
       {
         printf(" -> ");
@@ -352,7 +360,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
 #ifdef TDBG
   printf("__alloc\n");
 #endif
-  LRU_print_page();
+  // LRU_print_page();
 #ifdef RAM_STATUS_DUMP
   printf("------------------------------------------\n");
   printf("Process %d ALLOC CALL | SIZE = %d\n", caller->pid, size);
@@ -379,31 +387,29 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
     *alloc_addr = rgnode.rg_start;
     // NHIỆM VỤ: phải cập nhật LRU node bị trùng pte.
     int current_pgn = PAGING_PGN(rgnode.rg_start);
+    uint32_t *current_pte = caller->mm->pgd[current_pgn];
+    // struct framephy_struct *fpn_lst = caller->mram->used_fp_list;
+
     printf("current_pgn = %d\n", current_pgn);
-    uint32_t *current_pte = 0;
-    struct framephy_struct *fpn_lst = caller->mram->used_fp_list;
-
     printf("print head: %08x\n", *lru_head->pte);
-    // printf("we been here %d\n", PAGING_MAX_SYMTBL_SZ);
-    // printf("can access:     %d\n", fpn_lst->fpn);
-    // find duplicate
     printf("Looking for:\t %08x\n", caller->mm->pgd[current_pgn]);
-    while (fpn_lst != NULL)
-    {
-      pte_set_fpn(&current_pte, fpn_lst->fpn);
-      if (caller->mm->pgd[current_pgn] == current_pte)
-      {
-        printf("Found:\t %08x\n", current_pte);
-        break;
-      }
+    printf("Found:\t %08x\n", current_pte);
 
-      current_pte = 0;
-      fpn_lst = fpn_lst->fp_next;
-    }
+    // while (fpn_lst != NULL)
+    // {
+    //   pte_set_fpn(&current_pte, fpn_lst->fpn);
+    //   if (caller->mm->pgd[current_pgn] == current_pte)
+    //   {
+    //     break;
+    //   }
+
+    //   current_pte = 0;
+    //   fpn_lst = fpn_lst->fp_next;
+    // }
     printf("\n>>>>>DONE>>>>>  #RGID: %d\n", rgid);
-    // pte_set_fpn(&current_pte, fpn_lst->fpn);
 
-    LRU_add_page(&current_pte);
+    // LRU_add_page(&current_pte);
+    LRU_update_lst(&current_pte);
 #ifdef RAM_STATUS_DUMP
     printf("FOUND A FREE region to alloc. REMEMBER to check LRU for update.\n");
     printf("------------------------------------------\n");
@@ -416,6 +422,16 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
     }
     struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
     printf("VMA id %d : start = %lu, end = %lu, sbrk = %lu\n", cur_vma->vm_id, cur_vma->vm_start, cur_vma->vm_end, cur_vma->sbrk);
+    printf("------------------------------------------\n");
+    printf("Process %d Free Region list \n", caller->pid);
+    struct vm_rg_struct *temp = caller->mm->mmap->vm_freerg_list;
+    while (temp != NULL)
+    {
+      if (temp->rg_start != temp->rg_end)
+        printf("Start = %lu, end = %lu\n", temp->rg_start, temp->rg_end);
+      temp = temp->rg_next;
+    }
+    printf("------------------------------------------\n");
     RAM_dump(caller->mram);
     // FIFO_printf_list();
     LRU_print_page();
@@ -614,13 +630,13 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 
       // Them page moi vao FIFO
       // FIFO_add_page(&mm->pgd[pgn]);
-      printf("DEBUG: pte = %08x", mm->pgd[pgn]);
+      // printf("DEBUG GIA: pte = %08x", mm->pgd[pgn]);
       LRU_add_page(&mm->pgd[pgn]);
     }
     else
     {
       int tgtfpn = GETVAL(pte, GENMASK(20, 0), 5);
-      printf("DEBUG: pte = %08x", mm->pgd[pgn]);
+      // printf("DEBUG GIA: pte = %08x\n", mm->pgd[pgn]);
       int vicfpn, swpfpn;
       uint32_t *vicpte;
       /* Find pointer to pte of victim frame*/

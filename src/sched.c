@@ -56,7 +56,7 @@ struct pcb_t *get_mlq_proc(void)
 	/*TODO: get a process from PRIORITY [ready_queue].
 	 * Remember to use lock to protect the queue.
 	 * */
-	pthread_mutex_lock(&queue_lock);
+	// pthread_mutex_lock(&queue_lock);
 	if (cnt_slot >= MAX_PRIO - cnt_prio || empty(&mlq_ready_queue[cnt_prio]))
 	{
 		// find next non-empty queue
@@ -80,7 +80,7 @@ struct pcb_t *get_mlq_proc(void)
 		proc = dequeue(&mlq_ready_queue[cnt_prio]);
 		cnt_slot++;
 	}
-	pthread_mutex_unlock(&queue_lock);
+	// pthread_mutex_unlock(&queue_lock);
 	return proc;
 }
 

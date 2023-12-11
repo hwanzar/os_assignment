@@ -329,7 +329,11 @@ int vm_map_ram(struct pcb_t *caller, int astart, int aend, int mapstart, int inc
 
   /* it leaves the case of memory is enough but half in ram, half in swap
    * do the swaping all to swapper to get the all in ram */
-  vmap_page_range(caller, mapstart, incpgnum, frm_lst, ret_rg);
+  if (ret_alloc == 0)
+  {
+
+    vmap_page_range(caller, mapstart, incpgnum, frm_lst, ret_rg);
+  }
   /*------------Bat dau bai lam--------------*/
   // pthread_mutex_unlock(&MEM_in_use);
   /*------------Ket thuc bai lam-------------*/

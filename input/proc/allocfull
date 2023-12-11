@@ -1,7 +1,7 @@
 0 8 
 alloc 100 4
-alloc 300 1
-alloc 400 2
+alloc 400 1
+alloc 50 2
 alloc 600 5
 alloc 200 6
 alloc 55 7

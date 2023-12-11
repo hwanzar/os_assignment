@@ -255,11 +255,11 @@ int main(int argc, char *argv[])
 {
 
 	/*------------Bat dau bai lam--------------*/
-	static struct FIFO_struct *FIFO_head = NULL;
-	static struct FIFO_struct *FIFO_tail = NULL;
-	pthread_mutex_init(&FIFO_lock, NULL);
-	pthread_mutex_init(&MEM_in_use, NULL);
-	pthread_mutex_init(&cnt_done_lock, NULL);
+	// static struct FIFO_struct *FIFO_head = NULL;
+	// static struct FIFO_struct *FIFO_tail = NULL;
+	// pthread_mutex_init(&FIFO_lock, NULL);
+	// pthread_mutex_init(&MEM_in_use, NULL);
+	// pthread_mutex_init(&cnt_done_lock, NULL);
 	/*------------Ket thuc bai lam--------------*/
 
 	/* Read config */
@@ -353,9 +353,9 @@ int main(int argc, char *argv[])
 
 	pthread_mutex_unlock(&rps_times_lock);
 #endif
-	pthread_mutex_destroy(&FIFO_lock);
-	pthread_mutex_destroy(&MEM_in_use);
-	pthread_mutex_destroy(&cnt_done_lock);
+	// pthread_mutex_destroy(&FIFO_lock);
+	// pthread_mutex_destroy(&MEM_in_use);
+	// pthread_mutex_destroy(&cnt_done_lock);
 	// pthread_mutex_destroy(&rps_times_lock);
 	return 0;
 }
