@@ -331,7 +331,6 @@ int vm_map_ram(struct pcb_t *caller, int astart, int aend, int mapstart, int inc
    * do the swaping all to swapper to get the all in ram */
   if (ret_alloc == 0)
   {
-
     vmap_page_range(caller, mapstart, incpgnum, frm_lst, ret_rg);
   }
   /*------------Bat dau bai lam--------------*/
