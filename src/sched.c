@@ -39,7 +39,7 @@ void init_scheduler(void)
 #endif
 	ready_queue.size = 0;
 	run_queue.size = 0;
-	pthread_mutex_init(&queue_lock, NULL);
+	// pthread_mutex_init(&queue_lock, NULL);
 }
 
 #ifdef MLQ_SCHED
@@ -62,7 +62,7 @@ struct pcb_t *get_mlq_proc(void)
 		// find next non-empty queue
 		if (queue_empty() == 1)
 		{
-			pthread_mutex_unlock(&queue_lock);
+			// pthread_mutex_unlock(&queue_lock);
 			return proc;
 		}
 		do
@@ -80,7 +80,7 @@ struct pcb_t *get_mlq_proc(void)
 		proc = dequeue(&mlq_ready_queue[cnt_prio]);
 		cnt_slot++;
 	}
-	// pthread_mutex_unlock(&queue_lock);
+	pthread_mutex_unlock(&queue_lock);
 	return proc;
 }
 

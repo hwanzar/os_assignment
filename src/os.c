@@ -90,9 +90,9 @@ static void *cpu_routine(void *args)
 			proc = get_proc();
 			time_left = 0;
 
-			pthread_mutex_lock(&cnt_done_lock);
+			// pthread_mutex_lock(&cnt_done_lock);
 			cnt_proc_done++;
-			pthread_mutex_unlock(&cnt_done_lock);
+			// pthread_mutex_unlock(&cnt_done_lock);
 		}
 		else if (time_left == 0)
 		{

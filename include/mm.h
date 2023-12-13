@@ -158,8 +158,9 @@ int print_list_pgn(struct pgn_t *ip);
 int print_pgtbl(struct pcb_t *ip, uint32_t start, uint32_t end);
 
 /*------------Bat dau bai lam--------------*/
-// static pthread_mutex_t FIFO_lock;
-// static pthread_mutex_t MEM_in_use;
+static pthread_mutex_t FIFO_lock;
+static pthread_mutex_t MEM_in_use;
+static pthread_mutex_t memphy_mutex;
 // uint32_t *FIFO_find_vt_page_for_swap();
 // void FIFO_add_page(uint32_t *pte_add);
 // void FIFO_printf_list();

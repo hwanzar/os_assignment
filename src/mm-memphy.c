@@ -187,7 +187,7 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
 
 int MEMPHY_dump(struct memphy_struct *mp)
 {
-// pthread_mutex_lock(&MEM_in_use);
+  // pthread_mutex_lock(&MEM_in_use);
 #ifdef TDBG
   printf("MEMPHY_dump\n");
 #endif

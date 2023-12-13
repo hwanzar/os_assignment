@@ -56,6 +56,7 @@ void LRU_update_lst(uint32_t *pte_rm)
 void LRU_add_page(uint32_t *pte_add)
 {
   // nên tạo 1 cấu trúc dữ liệu cho LRU, như 1 DLL gần giống stack.
+
   struct LRU_struct *tmp = malloc(sizeof(struct LRU_struct));
   tmp->pte = pte_add; // gắn page table entry.
   tmp->fpn = PAGING_PTE_FPN(*pte_add);
@@ -83,7 +84,7 @@ void LRU_add_page(uint32_t *pte_add)
       if (p->fpn == tmp->fpn)
       {
         flag = 1;
-        printf("FLAG 1");
+        // printf("FLAG 1");
         break;
       }
       p = p->lru_next;
@@ -115,7 +116,10 @@ void LRU_add_page(uint32_t *pte_add)
       p->lru_pre = lru_tail;
       p->lru_next = NULL;
       lru_tail = p;
-      // lru_tail->pte = pte_add;
+      // lru_tail->lru_next = tmp;
+      // p->lru_pre = lru_tail;
+      // p->lru_next = NULL;
+      // lru_tail = tmp;
     }
     else
     {
@@ -430,17 +434,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
         // LRU_add_page(&caller->mm->pgd[current_pgn]);
         MEMPHY_put_freefp(caller->active_mswp, targetfpn);
       }
-      // while (fpn_lst != NULL)
-      // {
-      //   pte_set_fpn(&current_pte, fpn_lst->fpn);
-      //   if (caller->mm->pgd[current_pgn] == current_pte)
-      //   {
-      //     break;
-      //   }
 
-      //   current_pte = 0;
-      //   fpn_lst = fpn_lst->fp_next;
-      // }
       printf("\n>>>>>DONE>>>>>  #RGID: %d\n", rgid);
       LRU_add_page(&current_pte);
       // LRU_update_lst(&current_pte);
@@ -566,8 +560,11 @@ int __free(struct pcb_t *caller, int vmaid, int rgid)
   // Clear content of region in RAM
   BYTE value;
   value = 0;
-  for (int i = rgnode->rg_start; i < rgnode->rg_end; i++)
-    pg_setval(caller->mm, i, value, caller);
+  // for (int i = rgnode->rg_start; i < rgnode->rg_end; i++)
+  // {
+  //   printf("CALL ME BRO\n");
+  //   pg_setval(caller->mm, i, value, caller);
+  // }
   //(caller->mram,rgnode->rg_start,rgnode->rg_end)
   // Create new node for region
   rgnode_temp->rg_start = rgnode->rg_start;
@@ -666,11 +663,11 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
       __swap_cp_page(caller->active_mswp, tgtfpn, caller->mram, fpn_temp);
       // Cap nhat gia tri pte
       pte_set_fpn(&mm->pgd[pgn], fpn_temp);
+      // printf("DEBUG GIA: pte = %08x", mm->pgd[pgn]);
+      // LRU_add_page(&mm->pgd[pgn]);
 
       // Them page moi vao FIFO
       // FIFO_add_page(&mm->pgd[pgn]);
-      // printf("DEBUG GIA: pte = %08x", mm->pgd[pgn]);
-      // LRU_add_page(&mm->pgd[pgn]);
     }
     else
     {

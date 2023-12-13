@@ -13,7 +13,7 @@
 
 /* ------------------Bat dau phan lam----------------------- */
 #define RAM_STATUS_DUMP 1
-
+#define SYNC
 // #define TDBG
 /* -----------------Ket thuc phan lam----------------------- */
 
