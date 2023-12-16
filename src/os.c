@@ -15,7 +15,7 @@ static int num_cpus;
 static int done = 0;
 
 static int cnt_proc_done = 0; // Bien nay dung de set dieu kien dung cho CPU khi da hoan tat tat ca process
-pthread_mutex_t cnt_done_lock;
+// pthread_mutex_t cnt_done_lock;
 // #define RPS_TIME
 #ifdef RPS_TIME
 static int *rps_times;
@@ -53,14 +53,19 @@ struct cpu_args
 
 static void *cpu_routine(void *args)
 {
+	sleep(1);
 	struct timer_id_t *timer_id = ((struct cpu_args *)args)->timer_id;
 	int id = ((struct cpu_args *)args)->id;
 	/* Check for new process in ready queue */
 	int time_left = 0;
 	struct pcb_t *proc = NULL;
+
 	while (1)
 	{
 		/* Check the status of current process */
+
+		usleep(1000);
+
 		if (proc == NULL)
 		{
 			/* No process is running, the we load new process from
@@ -255,10 +260,11 @@ int main(int argc, char *argv[])
 {
 
 	/*------------Bat dau bai lam--------------*/
-	// static struct FIFO_struct *FIFO_head = NULL;
-	// static struct FIFO_struct *FIFO_tail = NULL;
+	static struct LRU_struct *lru_head = NULL;
+	static struct LRU_struct *lru_tail = NULL;
 	// pthread_mutex_init(&FIFO_lock, NULL);
-	// pthread_mutex_init(&MEM_in_use, NULL);
+	pthread_mutex_init(&MEM_in_use, NULL);
+	pthread_mutex_init(&LRU_lock, NULL);
 	// pthread_mutex_init(&cnt_done_lock, NULL);
 	/*------------Ket thuc bai lam--------------*/
 
@@ -354,8 +360,9 @@ int main(int argc, char *argv[])
 	pthread_mutex_unlock(&rps_times_lock);
 #endif
 	// pthread_mutex_destroy(&FIFO_lock);
-	// pthread_mutex_destroy(&MEM_in_use);
+	pthread_mutex_destroy(&MEM_in_use);
 	// pthread_mutex_destroy(&cnt_done_lock);
 	// pthread_mutex_destroy(&rps_times_lock);
+	pthread_mutex_destroy(&LRU_lock);
 	return 0;
 }

@@ -12,9 +12,13 @@
 /*------------------Bat dau phan lam----------------*/
 void LRU_update_lst(uint32_t *pte_rm)
 {
+// printf("FPN = 1");
+#ifdef SYNC
+  pthread_mutex_lock(&LRU_lock);
+#endif
   struct LRU_struct *p = lru_head;
+  // int fpn = PAGING_PTE_FPN(*pte_rm);
   int fpn = PAGING_PTE_FPN(*pte_rm);
-  printf("FPN: %d\n", fpn);
   while (p->lru_next != NULL)
   {
     if (p->fpn == fpn)
@@ -27,6 +31,9 @@ void LRU_update_lst(uint32_t *pte_rm)
   {
     if (lru_head == lru_tail)
     {
+#ifdef SYNC
+      pthread_mutex_unlock(&LRU_lock);
+#endif
       return;
     }
     lru_head = lru_head->lru_next;
@@ -35,6 +42,9 @@ void LRU_update_lst(uint32_t *pte_rm)
   }
   else if (p == lru_tail)
   {
+#ifdef SYNC
+    pthread_mutex_unlock(&LRU_lock);
+#endif
     return;
   }
   else
@@ -47,16 +57,21 @@ void LRU_update_lst(uint32_t *pte_rm)
   p->lru_pre = lru_tail;
   p->lru_next = NULL;
   lru_tail = p;
-  // p->pte = pte_rm;
-  // lru_tail->lru_next = tmp;
-  // tmp->lru_pre = lru_tail;
-  // tmp->lru_next = NULL;
-  // lru_tail = tmp;
+// p->pte = pte_rm;
+// lru_tail->lru_next = tmp;
+// tmp->lru_pre = lru_tail;
+// tmp->lru_next = NULL;
+// lru_tail = tmp;
+#ifdef SYNC
+  pthread_mutex_unlock(&LRU_lock);
+#endif
 }
 void LRU_add_page(uint32_t *pte_add)
 {
   // nên tạo 1 cấu trúc dữ liệu cho LRU, như 1 DLL gần giống stack.
-
+#ifdef SYNC
+  pthread_mutex_lock(&LRU_lock);
+#endif
   struct LRU_struct *tmp = malloc(sizeof(struct LRU_struct));
   tmp->pte = pte_add; // gắn page table entry.
   tmp->fpn = PAGING_PTE_FPN(*pte_add);
@@ -95,6 +110,9 @@ void LRU_add_page(uint32_t *pte_add)
       {
         if (lru_head == lru_tail)
         {
+#ifdef SYNC
+          pthread_mutex_unlock(&LRU_lock);
+#endif
           return;
         }
         lru_head = lru_head->lru_next;
@@ -103,6 +121,9 @@ void LRU_add_page(uint32_t *pte_add)
       }
       else if (p == lru_tail)
       {
+#ifdef SYNC
+        pthread_mutex_unlock(&LRU_lock);
+#endif
         return;
       }
       else
@@ -127,19 +148,33 @@ void LRU_add_page(uint32_t *pte_add)
       tmp->lru_pre = lru_tail;
       tmp->lru_next = NULL;
       lru_tail = tmp;
-      // lru_tail->pte = pte_add;
+// lru_tail->pte = pte_add;
+#ifdef SYNC
+      pthread_mutex_unlock(&LRU_lock);
+#endif
       return;
     }
   }
-  // LRU_print_page();
+// LRU_print_page();
+#ifdef SYNC
+  pthread_mutex_unlock(&LRU_lock);
+#endif
 }
 // pthread_mutex_unlock(&FIFO_lock);
 
 uint32_t *LRU_find_victim_page()
 {
-  // pthread_mutex_lock(&FIFO_lock);
+// pthread_mutex_lock(&FIFO_lock);
+#ifdef SYNC
+  pthread_mutex_lock(&LRU_lock);
+#endif
   if (lru_head == NULL)
+  {
+#ifdef SYNC
+    pthread_mutex_unlock(&LRU_lock);
+#endif
     return -1;
+  }
   struct LRU_struct *temp = lru_head;
   uint32_t *pte_res;
   pte_res = temp->pte;
@@ -159,134 +194,46 @@ uint32_t *LRU_find_victim_page()
     temp->lru_next = NULL;
   }
   free(temp);
-  // mutexlock here.
-  // pthread_mutex_unlock(&FIFO_lock);
+
+#ifdef SYNC
+  pthread_mutex_unlock(&LRU_lock);
+#endif
   return pte_res;
 }
 
 void LRU_print_page()
 {
-  // pthread_mutex_lock(&FIFO_lock);
+
+#ifdef SYNC
+  pthread_mutex_lock(&LRU_lock);
+#endif
   struct LRU_struct *temp = lru_head;
-  printf("---------------LRU LIST---------------\n");
-  printf("FPN: \n");
+  printf("-----------------LRU LIST-----------------\n");
+  // printf("FPN: \n");
   if (temp == NULL)
+  {
     printf("\nEMPTY page directory\n");
+    printf("\n------------------------------------------\n\n");
+  }
   else
   {
     while (temp != NULL)
     {
-      printf("[%d][%08x]", PAGING_PTE_FPN(*(temp->pte)), *temp->pte);
-      // printf("[%d]", temp->fpn);
+      // printf("[%d][%08x]", PAGING_PTE_FPN(*(temp->pte)), *temp->pte);
+      printf("[%d]", temp->fpn);
       if (temp->lru_next != NULL)
       {
         printf(" -> ");
       }
       temp = temp->lru_next;
     }
-    printf("\n----------------------------------\n\n");
+    printf("\n------------------------------------------\n\n");
   }
-  // pthread_mutex_lock(&FIFO_lock);
+#ifdef SYNC
+  pthread_mutex_unlock(&LRU_lock);
+#endif
 }
-/*------------------Tam thoi la FIFO----------------*/
 
-// uint32_t *FIFO_find_vt_page_for_swap()
-// {
-// #ifdef TDBG
-//   printf("FIFO_find_vt_page_for_swap\n");
-// #endif
-//   pthread_mutex_lock(&FIFO_lock);
-//   if (FIFO_head == NULL)
-//     return NULL;
-//   struct FIFO_struct *temp = FIFO_tail;
-//   uint32_t *pte_ret;
-//   pte_ret = temp->pte;
-//   if (FIFO_head == FIFO_tail)
-//   {
-//     FIFO_head = FIFO_tail = NULL;
-//   }
-//   else
-//   {
-//     FIFO_tail = FIFO_tail->FIFO_pre;
-//     FIFO_tail->FIFO_next = NULL;
-//   }
-//   free(temp);
-//   pthread_mutex_unlock(&FIFO_lock);
-//   return pte_ret;
-// }
-
-// void FIFO_add_page(uint32_t *pte_add)
-// {
-// #ifdef TDBG
-//   printf("FIFO_add_page\n");
-// #endif
-//   pthread_mutex_lock(&FIFO_lock);
-//   struct FIFO_struct *temp = malloc(sizeof(struct FIFO_struct));
-//   temp->pte = pte_add;
-//   if (FIFO_head == NULL)
-//   {
-//     FIFO_head = FIFO_tail = temp;
-//     temp->FIFO_next = NULL;
-//     temp->FIFO_pre = NULL;
-//   }
-//   else
-//   {
-//     temp->FIFO_pre = NULL;
-//     temp->FIFO_next = FIFO_head;
-//     FIFO_head->FIFO_pre = temp;
-//     FIFO_head = temp;
-//   }
-//   pthread_mutex_unlock(&FIFO_lock);
-// }
-// void FIFO_printf_list()
-// {
-//   pthread_mutex_lock(&FIFO_lock);
-//   struct FIFO_struct *temp = FIFO_head;
-//   printf("--------------- FIFO List  ---------------\n FPN: ");
-//   if (temp == NULL)
-//     printf("No element \n");
-//   while (temp != NULL)
-//   {
-//     printf("[%d]", GETVAL(*(temp->pte), PAGING_PTE_FPN_MASK, PAGING_PTE_FPN_LOBIT));
-//     if (temp->FIFO_next != NULL)
-//       printf("->");
-//     temp = temp->FIFO_next;
-//   }
-//   printf("\n----------------------------------------\n");
-//   pthread_mutex_unlock(&FIFO_lock);
-// }
-
-/*------------------Ket thuc phan lam --------------*/
-
-/*enlist_vm_freerg_list - add new rg to freerg_list
- *@mm: memory region
- *@rg_elmt: new region
- *
- */
-// int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct rg_elmt)
-// {
-// #ifdef TDBG
-//   printf("enlist_vm_freerg_list\n");
-// #endif
-//   /* ------------------Bat dau phan lam----------------------- */
-//   /*struct vm_rg_struct *rg_node = mm->mmap->vm_freerg_list;
-//   if (rg_elmt.rg_start >= rg_elmt.rg_end)
-//     return -1;
-//   if (rg_node != NULL)
-//     rg_elmt.rg_next = rg_node;
-//   mm->mmap->vm_freerg_list = &rg_elmt;*/
-//   struct vm_rg_struct *rg_node = malloc(sizeof(struct vm_rg_struct));
-//   if (rg_elmt.rg_start >= rg_elmt.rg_end)
-//     return -1;
-//   // add node to freerg_list
-//   rg_node->rg_start = rg_elmt.rg_start;
-//   rg_node->rg_end = rg_elmt.rg_end;
-//   rg_node->rg_next = mm->mmap->vm_freerg_list;
-//   // mm->mmap->vm_freerg_list = rg_node;
-
-//   /* ------------------Ket thuc phan lam----------------------- */
-//   return 0;
-// }
 int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct rg_elmt)
 {
   struct vm_rg_struct *rg_node = malloc(sizeof(struct vm_rg_struct));
@@ -365,7 +312,10 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
 #ifdef TDBG
   printf("__alloc\n");
 #endif
-  // LRU_print_page();
+// LRU_print_page();
+#ifdef SYNC
+  pthread_mutex_lock(&MEM_in_use);
+#endif
 #ifdef RAM_STATUS_DUMP
   printf("------------------------------------------\n");
   printf("Process %d ALLOC CALL | SIZE = %d\n", caller->pid, size);
@@ -376,16 +326,24 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   if (rgid < 0 || rgid > PAGING_MAX_SYMTBL_SZ)
   {
     printf("Process %d alloc error: Invalid region\n", caller->pid);
+#ifdef SYNC
+    pthread_mutex_unlock(&MEM_in_use);
+#endif
     return -1;
   }
   else if (caller->mm->symrgtbl[rgid].rg_start > caller->mm->symrgtbl[rgid].rg_end)
   {
     printf("Process %d alloc error: Region was alloc before\n", caller->pid);
+#ifdef SYNC
+    pthread_mutex_unlock(&MEM_in_use);
+#endif
     return -1;
   }
   if (get_free_vmrg_area(caller, vmaid, size, &rgnode) == 0)
   {
+#ifdef DEBUG
     printf("\n>>>>>Alloc Case>>>>> GET FREE RG in FREERG LIST. #RGID: %d\n\n", rgid);
+#endif
     caller->mm->symrgtbl[rgid].rg_start = rgnode.rg_start;
     caller->mm->symrgtbl[rgid].rg_end = rgnode.rg_end;
 
@@ -407,6 +365,11 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
     {
       uint32_t current_pte = caller->mm->pgd[i];
       int current_fpn;
+      if (rgnode.rg_end % 256 == 0 && rgnode.rg_end - rgnode.rg_start > 0)
+      {
+        LRU_update_lst(&current_pte);
+        break;
+      }
 
       if (!PAGING_PAGE_PRESENT(current_pte))
       {
@@ -419,7 +382,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
         uint32_t vicpte_temp = *vicpte;
         vicfpn = PAGING_PTE_FPN(vicpte_temp);
 
-        printf("FREE REG in SWAP \n\n");
+        // printf("FREE REG in SWAP \n\n");
         if (MEMPHY_get_freefp(caller->active_mswp, &swpfpn) < 0)
         {
           printf("Out of SWAP");
@@ -431,13 +394,14 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
         __swap_cp_page(caller->active_mswp, targetfpn, caller->mram, vicfpn);
         pte_set_fpn(&caller->mm->pgd[i], vicfpn);
 
-        // LRU_add_page(&caller->mm->pgd[current_pgn]);
+        LRU_add_page(&caller->mm->pgd[i]);
         MEMPHY_put_freefp(caller->active_mswp, targetfpn);
       }
-
+#ifdef DEBUG
       printf("\n>>>>>DONE>>>>>  #RGID: %d\n", rgid);
-      LRU_add_page(&current_pte);
-      // LRU_update_lst(&current_pte);
+#endif
+      // LRU_add_page(&current_pte);
+      LRU_update_lst(&current_pte);
     }
 #ifdef RAM_STATUS_DUMP
     printf("FOUND A FREE region to alloc. REMEMBER to check LRU for update.\n");
@@ -448,7 +412,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
       if (caller->mm->symrgtbl[it].rg_start == 0 && caller->mm->symrgtbl[it].rg_end == 0)
         continue;
       else
-        printf("Region id %d : start = %lu, end = %lu\n", it, caller->mm->symrgtbl[it].rg_start, caller->mm->symrgtbl[it].rg_end);
+        printf("Region id %d : Range = [%lu - %lu]\n", it, caller->mm->symrgtbl[it].rg_start, caller->mm->symrgtbl[it].rg_end);
     }
 
     printf("------------------------------------------\n");
@@ -468,11 +432,16 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
     // FIFO_printf_list();
     LRU_print_page();
 #endif
+#ifdef SYNC
+    pthread_mutex_unlock(&MEM_in_use);
+#endif
     return 0;
   }
 
   /* TODO get_free_vmrg_area FAILED handle the region management (Fig.6)*/
-  printf("\n>>>>>Alloc Case>>>>>No free region. #RGID: %d\n\n", rgid);
+#ifdef DEBUG
+  printf("\n>>>>>Alloc Case>>>>>No free region. #RGID: %d\n", rgid);
+#endif
   /*Attempt to increate limit to get space */
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
   int inc_sz = PAGING_PAGE_ALIGNSZ(size);
@@ -505,7 +474,7 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
     if (caller->mm->symrgtbl[it].rg_start == 0 && caller->mm->symrgtbl[it].rg_end == 0)
       continue;
     else
-      printf("Region id %d : start = %lu, end = %lu\n", it, caller->mm->symrgtbl[it].rg_start, caller->mm->symrgtbl[it].rg_end);
+      printf("Region id %d : Range = [%lu - %lu]\n", it, caller->mm->symrgtbl[it].rg_start, caller->mm->symrgtbl[it].rg_end);
   }
 
   printf("------------------------------------------\n");
@@ -523,6 +492,9 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   RAM_dump(caller->mram);
   // FIFO_printf_list();
   LRU_print_page();
+#endif
+#ifdef SYNC
+  pthread_mutex_unlock(&MEM_in_use);
 #endif
   return 0;
 }
@@ -583,7 +555,7 @@ int __free(struct pcb_t *caller, int vmaid, int rgid)
     if (caller->mm->symrgtbl[it].rg_start == 0 && caller->mm->symrgtbl[it].rg_end == 0)
       continue;
     else
-      printf("Region id %d : start = %lu, end = %lu\n", it, caller->mm->symrgtbl[it].rg_start, caller->mm->symrgtbl[it].rg_end);
+      printf("Region id %d : Range = [%lu - %lu]\n", it, caller->mm->symrgtbl[it].rg_start, caller->mm->symrgtbl[it].rg_end);
   }
   printf("------------------------------------------\n");
   printf("Process %d Free Region list \n", caller->pid);
@@ -641,7 +613,9 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 #ifdef TDBG
   printf("pg_getpage\n");
 #endif
-  // pthread_mutex_lock(&MEM_in_use);
+#ifdef SYNC
+  pthread_mutex_lock(&MEM_in_use);
+#endif
   uint32_t pte = mm->pgd[pgn];
   if (!PAGING_PAGE_PRESENT(pte))
   { /* Page is not online, make it actively living */
@@ -683,13 +657,18 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
       uint32_t vicpte_temp = *vicpte;
       /*Get victim frame*/
       vicfpn = GETVAL(vicpte_temp, PAGING_PTE_FPN_MASK, PAGING_PTE_FPN_LOBIT); // 8191 in decimal is 0->12 bit =1 in binary (total 13bit)
+      // vicfpn = GETVAL(vicpte_temp, GENMASK(20, 0), 5);
       /* Get free frame in MEMSWP */
       if (MEMPHY_get_freefp(caller->active_mswp, &swpfpn) < 0)
       {
         printf("Out of SWAP");
+#ifdef SYNC
+        pthread_mutex_unlock(&MEM_in_use);
+#endif
         return -3000;
       }
 #ifdef RAM_STATUS_DUMP
+      // printf("HAHA");
       printf("[Page Replacement]\tPID #%d:\tVictim:%d\tPTE:%08x\tTarget:%d\t\n", caller->pid, vicfpn, *vicpte, tgtfpn);
 #endif
       /* Copy victim frame to swap */
@@ -705,7 +684,7 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
       pte_set_fpn(&mm->pgd[pgn], vicfpn);
 
 #ifdef RAM_STATUS_DUMP
-      printf("[After Swap]\tPID #%d:\tVictim:%d\tPTE:%08x\tTarget:%d\t\n", caller->pid, swpfpn, *vicpte, vicfpn);
+      printf("[After Swap]\tPID #%d:\tVictim:%d\tPTE:%08x\tTarget:%d\t\n", caller->pid, vicfpn, *vicpte, tgtfpn);
 #endif
       // Them page moi vao FIFO
       // FIFO_add_page(&mm->pgd[pgn]);
@@ -734,13 +713,16 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     /*------------Het code thay ---------------*/
   }
   LRU_add_page(&mm->pgd[pgn]);
+  // LRU_update_lst(&mm->pgd[pgn]);
   /*------------Code cua thay ---------------*/
   // fpn = PAGING_FPN(pte);
   /*------------Het code thay ---------------*/
   /* ------------------Bat dau phan lam----------------------- */
   *fpn = GETVAL(mm->pgd[pgn], PAGING_PTE_FPN_MASK, PAGING_PTE_FPN_LOBIT);
-  // pthread_mutex_unlock(&MEM_in_use);
-  /* ------------------Ket thuc phan lam---------------------- */
+/* ------------------Ket thuc phan lam---------------------- */
+#ifdef SYNC
+  pthread_mutex_unlock(&MEM_in_use);
+#endif
   return 0;
 }
 
@@ -833,7 +815,7 @@ int __read(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE *data)
   else
   {
     pg_getval(caller->mm, currg->rg_start + offset, data, caller);
-    // LRU_update_lst(&caller->mm->pgd[PAGING_PGN(currg->rg_start + offset)]);
+    LRU_update_lst(&caller->mm->pgd[PAGING_PGN(currg->rg_start + offset)]);
   }
 
   /*------------------Ket thuc phan lam---------------*/
@@ -848,9 +830,11 @@ int pgread(
     uint32_t offset,    // Source address = [source] + [offset]
     uint32_t destination)
 {
-#ifdef TDBG
-  printf("pgread\n");
+#ifdef DEBUG
+  printf("------------------------------------------\n");
+  printf("Process %d READ CALL   \n", proc->pid);
 #endif
+
   BYTE data;
   int val = __read(proc, 0, source, offset, &data);
 
@@ -909,7 +893,7 @@ int __write(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE value)
   {
     pg_setval(caller->mm, currg->rg_start + offset, value, caller);
     // prinf("%08x", PAGING_PGN(currg->rg_start + offset));
-    // LRU_update_lst(&caller->mm->pgd[PAGING_PGN(currg->rg_start + offset)]);
+    LRU_update_lst(&caller->mm->pgd[PAGING_PGN(currg->rg_start + offset)]);
     // 12/12/2023
   }
   /*------------------Ket thuc phan lam---------------*/
@@ -924,8 +908,9 @@ int pgwrite(
     uint32_t destination, // Index of destination register
     uint32_t offset)
 {
-#ifdef TDBG
-  printf("pgwrite\n");
+#ifdef DEBUG
+  printf("------------------------------------------\n");
+  printf("Process %d WRITE CALL   \n", proc->pid);
 #endif
 #ifdef IODUMP
   printf("Process %d write region=%d offset=%d value=%d\n", proc->pid, destination, offset, data);
@@ -1054,9 +1039,7 @@ int inc_vma_limit(struct pcb_t *caller, int vmaid, int inc_sz)
    * now will be alloc real ram region */
   cur_vma->vm_end += inc_sz;
   cur_vma->sbrk += inc_sz; // nếu đã tăng vma lên 1 bậc, thì tăng luôn sbrk để alloc cái mới từ đó.
-#ifdef TDBG
-  printf("inc_vma_limit\n");
-#endif
+
   if (vm_map_ram(caller, area->rg_start, area->rg_end,
                  old_end, incnumpage, newrg) < 0)
     return -1; /* Map the memory to MEMRAM */
@@ -1091,15 +1074,16 @@ int find_victim_page(struct mm_struct *mm, int *retpgn)
  */
 int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_struct *newrg)
 {
-#ifdef TDBG
-  printf("get_free_vmrg_area\n");
-#endif
+
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
 
   struct vm_rg_struct *rgit = cur_vma->vm_freerg_list;
 
   if (rgit == NULL)
+  {
+
     return -1;
+  }
 
   /* Probe unintialized newrg */
   newrg->rg_start = newrg->rg_end = -1;
@@ -1146,8 +1130,14 @@ int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_s
     }
   }
 
-  if (newrg->rg_start == -1) // new region not found
+  // printf("start: %d, end: %d\n", newrg->rg_start, newrg->rg_end);
+
+  if (newrg->rg_start == -1)
+  {
+    // new region not found
+
     return -1;
+  }
 
   return 0;
 }

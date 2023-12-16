@@ -10,6 +10,7 @@
 // #define MMDBG 1
 #define IODUMP 1
 #define PAGETBL_DUMP 1
+#define DEBUG
 
 /* ------------------Bat dau phan lam----------------------- */
 #define RAM_STATUS_DUMP 1

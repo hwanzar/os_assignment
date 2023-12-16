@@ -187,9 +187,8 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
 
 int MEMPHY_dump(struct memphy_struct *mp)
 {
-  // pthread_mutex_lock(&MEM_in_use);
-#ifdef TDBG
-  printf("MEMPHY_dump\n");
+#ifdef SYNC
+  pthread_mutex_lock(&MEM_in_use);
 #endif
   /*TODO dump memphy contnt mp->storage
    *     for tracing the memory content
@@ -205,7 +204,9 @@ int MEMPHY_dump(struct memphy_struct *mp)
     }
   }
   printf("---------------------------------\n");
-  // pthread_mutex_unlock(&MEM_in_use);
+#ifdef SYNC
+  pthread_mutex_unlock(&MEM_in_use);
+#endif
   return 0;
 }
 int RAM_dump(struct memphy_struct *mram)

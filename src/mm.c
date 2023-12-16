@@ -155,6 +155,7 @@ int vmap_page_range(struct pcb_t *caller,           // process call
     // them cac frame nay vao global fifo
     // FIFO_add_page(&(caller->mm->pgd[pgn + pgit]));
     LRU_add_page(&(caller->mm->pgd[pgn + pgit]));
+    // LRU_update_lst(&(caller->mm->pgd[pgn + pgit]));
     fpit = fpit->fp_next;
     pgit++;
   }
@@ -252,7 +253,7 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
       pte_set_swap(vicpte, 0, swpfpn);
 
 #ifdef RAM_STATUS_DUMP
-      printf("[After Swap]\tPID #%d:\tVictim:%d\tPTE:%08x\n", caller->pid, swpfpn, *vicpte);
+      printf("[After Swap]\tPID #%d:\tVictim:%d\tPTE:%08x\n", caller->pid, vicfpn, *vicpte);
 #endif
       /*Tao node moi*/
       struct framephy_struct *newnode = malloc(sizeof(struct framephy_struct));
@@ -297,14 +298,11 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
  */
 int vm_map_ram(struct pcb_t *caller, int astart, int aend, int mapstart, int incpgnum, struct vm_rg_struct *ret_rg)
 {
-#ifdef TDBG
-  printf("vm_map_ram\n");
+#ifdef SYNC
+  pthread_mutex_lock(&MEM_in_use);
 #endif
   struct framephy_struct *frm_lst = NULL;
   int ret_alloc;
-  /*------------Bat dau bai lam--------------*/
-  // pthread_mutex_lock(&MEM_in_use);
-  /*------------Ket thuc bai la--------------*/
   /*@bksysnet: author provides a feasible solution of getting frames
    *FATAL logic in here, wrong behaviour if we have not enough page
    *i.e. we request 1000 frames meanwhile our RAM has size of 3 frames
@@ -316,13 +314,21 @@ int vm_map_ram(struct pcb_t *caller, int astart, int aend, int mapstart, int inc
   ret_alloc = alloc_pages_range(caller, incpgnum, &frm_lst);
 
   if (ret_alloc < 0 && ret_alloc != -3000)
+  {
+#ifdef SYNC
+    pthread_mutex_unlock(&MEM_in_use);
+#endif
     return -1;
+  }
 
   /* Out of memory */
   if (ret_alloc == -3000)
   {
 #ifdef MMDBG
     printf("OOM: vm_map_ram out of memory \n");
+#endif
+#ifdef SYNC
+    pthread_mutex_unlock(&MEM_in_use);
 #endif
     return -1;
   }
@@ -333,9 +339,9 @@ int vm_map_ram(struct pcb_t *caller, int astart, int aend, int mapstart, int inc
   {
     vmap_page_range(caller, mapstart, incpgnum, frm_lst, ret_rg);
   }
-  /*------------Bat dau bai lam--------------*/
-  // pthread_mutex_unlock(&MEM_in_use);
-  /*------------Ket thuc bai lam-------------*/
+#ifdef SYNC
+  pthread_mutex_unlock(&MEM_in_use);
+#endif
   return 0;
 }
 

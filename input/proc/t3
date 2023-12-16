@@ -1,12 +1,7 @@
-1 10
-calc
-calc
-calc
-calc
-calc
-calc
-calc
-calc
-calc
-calc
-calc
+20 6
+alloc 50 1
+alloc 100 2
+free 2
+alloc 125 3
+free 1
+free 3

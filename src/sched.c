@@ -39,7 +39,7 @@ void init_scheduler(void)
 #endif
 	ready_queue.size = 0;
 	run_queue.size = 0;
-	// pthread_mutex_init(&queue_lock, NULL);
+	pthread_mutex_init(&queue_lock, NULL);
 }
 
 #ifdef MLQ_SCHED
@@ -56,29 +56,69 @@ struct pcb_t *get_mlq_proc(void)
 	/*TODO: get a process from PRIORITY [ready_queue].
 	 * Remember to use lock to protect the queue.
 	 * */
-	// pthread_mutex_lock(&queue_lock);
-	if (cnt_slot >= MAX_PRIO - cnt_prio || empty(&mlq_ready_queue[cnt_prio]))
+	pthread_mutex_lock(&queue_lock);
+	// if (cnt_slot >= MAX_PRIO - cnt_prio || empty(&mlq_ready_queue[cnt_prio]))
+	// {
+	// 	// find next non-empty queue
+	// 	if (queue_empty() == 1)
+	// 	{
+	// 		pthread_mutex_unlock(&queue_lock);
+	// 		return proc;
+	// 	}
+	// 	do
+	// 	{
+	// 		cnt_prio = (cnt_prio + 1) % MAX_PRIO;
+	// 		if (!empty(&mlq_ready_queue[cnt_prio]))
+	// 		{
+	// 			proc = dequeue(&mlq_ready_queue[cnt_prio]);
+	// 			cnt_slot = 1;
+	// 		}
+	// 	} while (proc == NULL);
+	// }
+	// else
+	// {
+	// 	proc = dequeue(&mlq_ready_queue[cnt_prio]);
+	// 	cnt_slot++;
+	// }
+	// pthread_mutex_unlock(&queue_lock);
+	// return proc;
+	for (int i = 0; i < MAX_PRIO; i++)
 	{
-		// find next non-empty queue
-		if (queue_empty() == 1)
+		if (!empty(&mlq_ready_queue[i]))
 		{
-			// pthread_mutex_unlock(&queue_lock);
-			return proc;
-		}
-		do
-		{
-			cnt_prio = (cnt_prio + 1) % MAX_PRIO;
-			if (!empty(&mlq_ready_queue[cnt_prio]))
+			if (mlq_ready_queue[i].timeslot != 0)
 			{
-				proc = dequeue(&mlq_ready_queue[cnt_prio]);
-				cnt_slot = 1;
+				proc = dequeue(&mlq_ready_queue[i]);
+				mlq_ready_queue[i].timeslot--;
+				break;
 			}
-		} while (proc == NULL);
+		}
 	}
-	else
+	// if (proc == NULL){
+	// 	for ( int i = 0; i < MAX_PRIO; i ++){
+	// 		mlq_ready_queue[i].timeslot = MAX_PRIO - i;
+	// 	}
+	// 	proc = get_mlq_proc();
+	// }
+	if (proc == NULL)
 	{
-		proc = dequeue(&mlq_ready_queue[cnt_prio]);
-		cnt_slot++;
+		for (int i = 0; i < MAX_PRIO; i++)
+		{
+			mlq_ready_queue[i].timeslot = MAX_PRIO - i;
+		}
+		// run the algo again to get the proc after reset the time slot of every queue
+		for (int i = 0; i < MAX_PRIO; i++)
+		{
+			if (!empty(&mlq_ready_queue[i]))
+			{
+				if (mlq_ready_queue[i].timeslot != 0)
+				{
+					proc = dequeue(&mlq_ready_queue[i]);
+					mlq_ready_queue[i].timeslot--;
+					break;
+				}
+			}
+		}
 	}
 	pthread_mutex_unlock(&queue_lock);
 	return proc;
